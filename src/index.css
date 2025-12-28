@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --board-light: #f0d9b5;
+  --board-dark: #b58863;
+  --highlight: #aaa23a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0f172a;
+  color: #f8fafc;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer components {
+  .btn {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-700 text-white hover:bg-gray-600 border border-gray-600;
+  }
+
+  .btn-success {
+    @apply bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800;
+  }
+
+  .btn-danger {
+    @apply bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800;
+  }
+
+  .card {
+    @apply bg-slate-800 rounded-xl shadow-xl border border-slate-700;
+  }
+
+  .glass {
+    @apply bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl;
+  }
+
+  .input {
+    @apply w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-500;
+}
+
+/* Chess piece animation */
+.piece-move {
+  transition: transform 0.15s ease-out;
+}
+
+/* Evaluation bar */
+.eval-bar {
+  width: 24px;
+  height: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.eval-bar-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  transition: height 0.3s ease-out;
+}
+
+/* Pulse animation for thinking indicator */
+@keyframes thinking-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.thinking-indicator {
+  animation: thinking-pulse 1.5s ease-in-out infinite;
+}
+
+/* Move highlight */
+.highlight-move {
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 0, 0.5);
+}
+
+.highlight-check {
+  box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 0.6);
+}
+
+/* Game mode cards */
+.mode-card {
+  @apply card p-8 cursor-pointer transition-all duration-300 hover:scale-105 hover:border-blue-500;
+}
+
+.mode-card:hover {
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Tooltip */
+.tooltip {
+  @apply absolute z-50 px-3 py-2 text-sm bg-slate-900 text-white rounded-lg shadow-lg opacity-0 invisible transition-all duration-200;
+}
+
+.tooltip-trigger:hover .tooltip {
+  @apply opacity-100 visible;
+}
