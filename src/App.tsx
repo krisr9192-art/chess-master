@@ -15,7 +15,7 @@ import { TrainingPlan } from './pages/TrainingPlan';
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/chess-master">
       <div className="min-h-screen bg-slate-900">
         <Header />
         <main>
