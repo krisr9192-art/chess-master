@@ -51,6 +51,7 @@ export function PlayFriend() {
     chatMessages,
     createGame,
     joinGame,
+    sendMove,
     sendChat,
     requestRematch,
     resign,
@@ -184,44 +185,12 @@ export function PlayFriend() {
       if (success) {
         setLastMove({ from, to });
         const newFen = game.fen();
-
-        // Send move directly to Firebase using push (simpler, no read needed)
-        const sendMoveToFirebase = async () => {
-          try {
-            const { ref, push, set } = await import('firebase/database');
-            const { database } = await import('../lib/firebase');
-
-            if (!peerId) {
-              console.error('No game ID!');
-              return;
-            }
-
-            // Use push to add to moves list
-            const movesRef = ref(database, `games/${peerId}/moves`);
-            const newMoveRef = push(movesRef);
-            await set(newMoveRef, {
-              from,
-              to,
-              promotion: promotion || null,
-              player: playerColor === 'w' ? 'host' : 'guest',
-              timestamp: Date.now(),
-            });
-
-            // Also save FEN
-            const fenRef = ref(database, `games/${peerId}/fen`);
-            await set(fenRef, newFen);
-
-            console.log('[PlayFriend] Move pushed to Firebase');
-          } catch (err) {
-            console.error('[PlayFriend] Failed to send move:', err);
-          }
-        };
-
-        sendMoveToFirebase();
+        // Send move via the hook
+        sendMove(from, to, promotion, newFen);
       }
       return success;
     },
-    [game, playerColor, makeMove, peerId]
+    [game, playerColor, makeMove, sendMove]
   );
 
   const handleResign = () => {
@@ -448,32 +417,6 @@ export function PlayFriend() {
               </div>
             </div>
 
-            {/* Debug info */}
-            <div className="mt-4 p-3 rounded-lg bg-yellow-900/50 text-xs text-yellow-200 font-mono">
-              <div>Game: {peerId}</div>
-              <div>Turn: {game.turn() === 'w' ? 'White' : 'Black'}</div>
-              <div>You: {playerColor === 'w' ? 'White' : 'Black'}</div>
-              <div>Can move: {game.turn() === playerColor && opponentConnected ? 'YES' : 'NO'}</div>
-              <div>Opponent: {opponentConnected ? 'Connected' : 'Disconnected'}</div>
-              <div>Moves: {gameState.moveHistory.length}</div>
-              <button
-                onClick={async () => {
-                  try {
-                    alert(`Game ID: ${peerId}\nTrying direct Firebase write...`);
-                    const { ref, set } = await import('firebase/database');
-                    const { database } = await import('../lib/firebase');
-                    const testRef = ref(database, `games/${peerId}/testMove`);
-                    await set(testRef, { test: 'hello', time: Date.now() });
-                    alert('Direct Firebase write SUCCESS!');
-                  } catch (err: any) {
-                    alert(`Firebase ERROR: ${err.message}`);
-                  }
-                }}
-                className="mt-2 px-2 py-1 bg-yellow-600 text-black rounded"
-              >
-                Test Firebase
-              </button>
-            </div>
           </div>
 
           {/* Right side - Info panels */}

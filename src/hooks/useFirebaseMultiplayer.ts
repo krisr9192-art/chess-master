@@ -50,10 +50,8 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const unsubscribeRef = useRef<(() => void)[]>([]);
-  const processedMoveCountRef = useRef<number>(0);
+  const lastMoveIdRef = useRef<string | null>(null);
   const lastActionIdRef = useRef<string | null>(null);
-  const isHostRef = useRef<boolean>(false);
-  const gameIdRef = useRef<string | null>(null);
 
   // Store callbacks in refs to avoid stale closures
   const onMoveRef = useRef(options.onMove);
@@ -75,15 +73,6 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     onGameStateLoadedRef.current = options.onGameStateLoaded;
   }, [options]);
 
-  // Keep refs in sync with state
-  useEffect(() => {
-    isHostRef.current = isHost;
-  }, [isHost]);
-
-  useEffect(() => {
-    gameIdRef.current = gameId;
-  }, [gameId]);
-
   const cleanup = useCallback(() => {
     unsubscribeRef.current.forEach(unsub => unsub());
     unsubscribeRef.current = [];
@@ -91,43 +80,35 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
 
   // Set up listeners for a game
   const setupGameListeners = useCallback((code: string, amHost: boolean) => {
+    console.log('[Firebase] Setting up listeners for game:', code, 'amHost:', amHost);
+
     // Listen for opponent connection
     const opponentConnRef = ref(database, `games/${code}/${amHost ? 'guestConnected' : 'hostConnected'}`);
     const unsubOpponent = onValue(opponentConnRef, (snapshot) => {
       const connected = snapshot.val() === true;
+      console.log('[Firebase] Opponent connected:', connected);
       setOpponentConnected(connected);
       onConnectionChangeRef.current?.(connected);
     });
     unsubscribeRef.current.push(unsubOpponent);
 
-    // Listen for moves
-    const movesRef = ref(database, `games/${code}/moves`);
-    const unsubMoves = onValue(movesRef, (snapshot) => {
+    // Listen for lastMove - SIMPLE approach: just track the last move made
+    const lastMoveRef = ref(database, `games/${code}/lastMove`);
+    const unsubLastMove = onValue(lastMoveRef, (snapshot) => {
       const data = snapshot.val();
-      console.log('[Firebase] Moves update received:', data, 'amHost:', amHost);
+      console.log('[Firebase] lastMove update:', data, 'amHost:', amHost);
+
       if (!data) return;
 
-      // Convert object to array and sort by timestamp
-      const movesObj = data as Record<string, { from: string; to: string; promotion?: string; player: string; timestamp: number }>;
-      const moves = Object.values(movesObj).sort((a, b) => a.timestamp - b.timestamp);
-      console.log('[Firebase] Processed moves array:', moves, 'length:', moves.length);
-      if (moves.length === 0) return;
-
-      // Process only new moves from opponent
-      const opponentRole = amHost ? 'guest' : 'host';
-      console.log('[Firebase] Looking for moves from:', opponentRole, 'starting at index:', processedMoveCountRef.current);
-
-      for (let i = processedMoveCountRef.current; i < moves.length; i++) {
-        const move = moves[i];
-        console.log('[Firebase] Processing move at index', i, ':', move);
-        if (move && move.player === opponentRole) {
-          console.log('[Firebase] Calling onMove for opponent move:', move.from, '->', move.to);
-          onMoveRef.current?.(move.from, move.to, move.promotion);
-        }
-        processedMoveCountRef.current = i + 1;
+      // Only process if it's from opponent and we haven't processed it yet
+      const myRole = amHost ? 'host' : 'guest';
+      if (data.player !== myRole && data.id !== lastMoveIdRef.current) {
+        console.log('[Firebase] Processing opponent move:', data);
+        lastMoveIdRef.current = data.id;
+        onMoveRef.current?.(data.from, data.to, data.promotion);
       }
     });
-    unsubscribeRef.current.push(unsubMoves);
+    unsubscribeRef.current.push(unsubLastMove);
 
     // Listen for actions
     const actionsRef = ref(database, `games/${code}/actions`);
@@ -135,9 +116,10 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       const action = snapshot.val();
       if (!action) return;
 
-      const opponentRole = amHost ? 'guest' : 'host';
-      if (action.from === opponentRole && action.id !== lastActionIdRef.current) {
+      const myRole = amHost ? 'host' : 'guest';
+      if (action.from !== myRole && action.id !== lastActionIdRef.current) {
         lastActionIdRef.current = action.id;
+        console.log('[Firebase] Action from opponent:', action.type);
         if (action.type === 'resign') onOpponentResignRef.current?.();
         if (action.type === 'draw-offer') onDrawOfferRef.current?.();
         if (action.type === 'draw-accept') onDrawAcceptedRef.current?.();
@@ -161,15 +143,17 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
   // Create a new game as host
   const createGame = useCallback(async (): Promise<string> => {
     const code = generateGameCode();
+    console.log('[Firebase] Creating game:', code);
+
     const gameRef = ref(database, `games/${code}`);
 
     await set(gameRef, {
       hostConnected: true,
       guestConnected: false,
-      moves: [],
+      lastMove: null,
       actions: null,
       chat: {},
-      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', // Starting position
+      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       createdAt: Date.now(),
     });
 
@@ -177,13 +161,8 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     const hostConnectedRef = ref(database, `games/${code}/hostConnected`);
     onDisconnect(hostConnectedRef).set(false);
 
-    // Reset move counter
-    processedMoveCountRef.current = 0;
+    lastMoveIdRef.current = null;
     lastActionIdRef.current = null;
-
-    // Update refs IMMEDIATELY (don't wait for useEffect)
-    gameIdRef.current = code;
-    isHostRef.current = true;
 
     setGameId(code);
     setIsHost(true);
@@ -197,12 +176,15 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
 
   // Join an existing game
   const joinGame = useCallback(async (code: string): Promise<boolean> => {
+    console.log('[Firebase] Joining game:', code);
+
     try {
       const gameRef = ref(database, `games/${code}`);
       const snapshot = await get(gameRef);
       const game = snapshot.val();
 
       if (!game || !game.hostConnected) {
+        console.log('[Firebase] Game not found or host not connected');
         return false;
       }
 
@@ -211,15 +193,11 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       await set(guestConnectedRef, true);
       onDisconnect(guestConnectedRef).set(false);
 
-      // Get current move count to know where to start processing
-      const movesData = game.moves;
-      const moves = movesData ? (Array.isArray(movesData) ? movesData : Object.values(movesData)) : [];
-      processedMoveCountRef.current = moves.length;
+      // If there's already a lastMove, mark it as processed so we don't replay it
+      if (game.lastMove) {
+        lastMoveIdRef.current = game.lastMove.id;
+      }
       lastActionIdRef.current = null;
-
-      // Update refs IMMEDIATELY (don't wait for useEffect)
-      gameIdRef.current = code;
-      isHostRef.current = false;
 
       setGameId(code);
       setIsHost(false);
@@ -229,9 +207,8 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
 
       setupGameListeners(code, false);
 
-      // Load the current game state (FEN) if there are moves
-      if (game.fen && moves.length > 0) {
-        // Small delay to ensure state is set
+      // Load the current game state (FEN) if there's one
+      if (game.fen && game.lastMove) {
         setTimeout(() => {
           onGameStateLoadedRef.current?.(game.fen);
         }, 100);
@@ -239,76 +216,68 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
 
       return true;
     } catch (error) {
-      console.error('Failed to join game:', error);
+      console.error('[Firebase] Failed to join game:', error);
       return false;
     }
   }, [setupGameListeners]);
 
-  // Send a move - using get() to avoid race conditions
+  // Send a move - now just updates lastMove
   const sendMove = useCallback(async (from: string, to: string, promotion?: string, fen?: string) => {
-    const currentGameId = gameIdRef.current;
-    const currentIsHost = isHostRef.current;
-
-    console.log('[Firebase] sendMove called:', { from, to, promotion, gameId: currentGameId, isHost: currentIsHost });
-
-    if (!currentGameId) {
-      console.log('[Firebase] sendMove aborted - no gameId');
+    if (!gameId) {
+      console.log('[Firebase] sendMove: no gameId');
       return;
     }
 
-    try {
-      const movesRef = ref(database, `games/${currentGameId}/moves`);
-      const snapshot = await get(movesRef);
-      const data = snapshot.val();
-      // Firebase sometimes converts arrays to objects - handle both
-      const moves = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
-      console.log('[Firebase] Current moves before adding:', moves);
+    const moveId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const myRole = isHost ? 'host' : 'guest';
 
-      const newMove = {
-        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    console.log('[Firebase] Sending move:', { from, to, promotion, gameId, role: myRole });
+
+    try {
+      // Update lastMove
+      const lastMoveRef = ref(database, `games/${gameId}/lastMove`);
+      await set(lastMoveRef, {
+        id: moveId,
         from,
         to,
-        promotion,
-        player: currentIsHost ? 'host' : 'guest',
+        promotion: promotion || null,
+        player: myRole,
         timestamp: Date.now(),
-      };
+      });
 
-      console.log('[Firebase] Sending new move:', newMove);
-      await set(movesRef, [...moves, newMove]);
-      console.log('[Firebase] Move sent successfully');
+      // Mark this as processed so we don't echo it back to ourselves
+      lastMoveIdRef.current = moveId;
 
-      // Also save the current FEN for game persistence
+      // Also save FEN
       if (fen) {
-        const fenRef = ref(database, `games/${currentGameId}/fen`);
+        const fenRef = ref(database, `games/${gameId}/fen`);
         await set(fenRef, fen);
       }
+
+      console.log('[Firebase] Move sent successfully');
     } catch (error) {
-      console.error('Failed to send move:', error);
+      console.error('[Firebase] Failed to send move:', error);
     }
-  }, []);
+  }, [gameId, isHost]);
 
   // Send action (resign, draw, rematch)
   const sendAction = useCallback(async (type: string) => {
-    const currentGameId = gameIdRef.current;
-    const currentIsHost = isHostRef.current;
+    if (!gameId) return;
 
-    if (!currentGameId) return;
-
-    const actionsRef = ref(database, `games/${currentGameId}/actions`);
+    const actionsRef = ref(database, `games/${gameId}/actions`);
     await set(actionsRef, {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       type,
-      from: currentIsHost ? 'host' : 'guest',
+      from: isHost ? 'host' : 'guest',
       timestamp: Date.now(),
     });
-  }, []);
+  }, [gameId, isHost]);
 
   // Send chat message
   const sendChat = useCallback(async (text: string) => {
-    const currentGameId = gameIdRef.current;
-    if (!currentGameId) return;
+    if (!gameId) return;
 
-    const chatRef = ref(database, `games/${currentGameId}/chat`);
+    const chatRef = ref(database, `games/${gameId}/chat`);
     const newMsgRef = push(chatRef);
     await set(newMsgRef, {
       id: newMsgRef.key,
@@ -316,7 +285,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       sender: 'me',
       timestamp: Date.now(),
     });
-  }, []);
+  }, [gameId]);
 
   const requestRematch = useCallback(() => sendAction('rematch'), [sendAction]);
   const resign = useCallback(() => sendAction('resign'), [sendAction]);
@@ -327,21 +296,19 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
   // Disconnect from game
   const disconnect = useCallback(() => {
     cleanup();
-    const currentGameId = gameIdRef.current;
-    const currentIsHost = isHostRef.current;
 
-    if (currentGameId) {
-      const connectedRef = ref(database, `games/${currentGameId}/${currentIsHost ? 'hostConnected' : 'guestConnected'}`);
+    if (gameId) {
+      const connectedRef = ref(database, `games/${gameId}/${isHost ? 'hostConnected' : 'guestConnected'}`);
       set(connectedRef, false);
     }
 
-    processedMoveCountRef.current = 0;
+    lastMoveIdRef.current = null;
     lastActionIdRef.current = null;
     setGameId(null);
     setIsConnected(false);
     setOpponentConnected(false);
     setChatMessages([]);
-  }, [cleanup]);
+  }, [cleanup, gameId, isHost]);
 
   // Cleanup on unmount
   useEffect(() => {
