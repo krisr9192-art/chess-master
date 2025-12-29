@@ -426,6 +426,16 @@ export function PlayFriend() {
               <div>Can move: {game.turn() === playerColor && opponentConnected ? 'YES' : 'NO'}</div>
               <div>Opponent: {opponentConnected ? 'Connected' : 'Disconnected'}</div>
               <div>Moves: {gameState.moveHistory.length}</div>
+              <button
+                onClick={() => {
+                  alert('Testing sendMove: e2 to e4');
+                  sendMove('e2', 'e4', undefined, 'test-fen');
+                  setTimeout(() => alert('sendMove completed (check Firebase)'), 1000);
+                }}
+                className="mt-2 px-2 py-1 bg-yellow-600 text-black rounded"
+              >
+                Test Send Move
+              </button>
             </div>
           </div>
 
