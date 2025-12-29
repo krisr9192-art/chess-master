@@ -139,7 +139,11 @@ export function useMultiplayer(options: UseMultiplayerOptions = {}): UseMultipla
       const gameCode = generateGameCode();
 
       const peer = new Peer(gameCode, {
-        debug: 1,
+        debug: 2,
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/',
+        secure: true,
       });
 
       peerRef.current = peer;
@@ -170,7 +174,11 @@ export function useMultiplayer(options: UseMultiplayerOptions = {}): UseMultipla
         const myId = `${hostId}-guest-${Date.now()}`;
 
         const peer = new Peer(myId, {
-          debug: 1,
+          debug: 2,
+          host: '0.peerjs.com',
+          port: 443,
+          path: '/',
+          secure: true,
         });
 
         peerRef.current = peer;
