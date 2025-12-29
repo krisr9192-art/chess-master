@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Layout/Header';
 import { Home } from './pages/Home';
 import { PlayAI } from './pages/PlayAI';
@@ -15,7 +15,7 @@ import { TrainingPlan } from './pages/TrainingPlan';
 
 function App() {
   return (
-    <BrowserRouter basename="/chess-master">
+    <HashRouter>
       <div className="min-h-screen bg-slate-900">
         <Header />
         <main>
@@ -35,7 +35,7 @@ function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

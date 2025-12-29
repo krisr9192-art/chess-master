@@ -137,7 +137,7 @@ export function PlayFriend() {
 
   const getShareUrl = () => {
     const baseUrl = window.location.origin + window.location.pathname;
-    return `${baseUrl}?join=${peerId}`;
+    return `${baseUrl}#/play-friend?join=${peerId}`;
   };
 
   const copyGameLink = () => {
