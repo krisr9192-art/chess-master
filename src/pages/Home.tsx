@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Bot, Users, GraduationCap, Puzzle, BarChart3, Trophy, Zap, Target, TrendingUp, Brain, BookOpen, Calendar } from 'lucide-react';
+import { Bot, GraduationCap, Puzzle, BarChart3, Trophy, Zap, Target, TrendingUp, Brain, BookOpen, Calendar } from 'lucide-react';
 import { useRatingStore } from '../store/ratingStore';
 import { useGameStore } from '../store/gameStore';
 import { getRatingColor } from '../utils/rating';
@@ -12,14 +12,6 @@ const gameModes = [
     icon: Bot,
     gradient: 'from-blue-600 to-blue-800',
     features: ['4 Difficulty Levels', 'Instant Analysis', 'Take Back Moves'],
-  },
-  {
-    path: '/play-friend',
-    title: 'Play with Friends',
-    description: 'Create a game and share the link with a friend to play online in real-time.',
-    icon: Users,
-    gradient: 'from-green-600 to-green-800',
-    features: ['Shareable Game Link', 'Real-time Sync', 'In-game Chat'],
   },
   {
     path: '/learn',
@@ -156,7 +148,7 @@ export function Home() {
         {/* Footer Info */}
         <div className="mt-16 text-center text-slate-500 text-sm">
           <p>Built with React, TypeScript, and Stockfish Engine</p>
-          <p className="mt-1">No account required. All games are peer-to-peer.</p>
+          <p className="mt-1">No account required. All progress saved locally.</p>
         </div>
       </div>
     </div>

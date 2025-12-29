@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Crown, Bot, Users, GraduationCap, BarChart3, Settings } from 'lucide-react';
+import { Crown, Bot, GraduationCap, BarChart3, Settings, Puzzle } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Home', icon: Crown },
   { path: '/play-ai', label: 'vs Computer', icon: Bot },
-  { path: '/play-friend', label: 'vs Friend', icon: Users },
+  { path: '/puzzles', label: 'Puzzles', icon: Puzzle },
   { path: '/learn', label: 'Learn', icon: GraduationCap },
   { path: '/analysis', label: 'Analysis', icon: BarChart3 },
 ];
