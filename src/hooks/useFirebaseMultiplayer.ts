@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ref, set, onValue, update, push, onDisconnect } from 'firebase/database';
+import { ref, set, onValue, get, push, onDisconnect } from 'firebase/database';
 import { database } from '../lib/firebase';
 import type { ChatMessage, Color } from '../types';
 
 interface UseMultiplayerOptions {
   onMove?: (from: string, to: string, promotion?: string) => void;
-  onChat?: (message: ChatMessage) => void;
   onRematchRequest?: () => void;
   onOpponentResign?: () => void;
   onDrawOffer?: () => void;
@@ -42,16 +41,6 @@ function generateGameCode(): string {
 }
 
 export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): UseMultiplayerReturn {
-  const {
-    onMove,
-    onChat,
-    onRematchRequest,
-    onOpponentResign,
-    onDrawOffer,
-    onDrawAccepted,
-    onConnectionChange,
-  } = options;
-
   const [gameId, setGameId] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -60,77 +49,86 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const unsubscribeRef = useRef<(() => void)[]>([]);
-  const lastMoveRef = useRef<string | null>(null);
-  const lastActionRef = useRef<string | null>(null);
+  const processedMoveCountRef = useRef<number>(0);
+  const lastActionIdRef = useRef<string | null>(null);
+  const isHostRef = useRef<boolean>(false);
+  const gameIdRef = useRef<string | null>(null);
 
-  // Clean up listeners
+  // Store callbacks in refs to avoid stale closures
+  const onMoveRef = useRef(options.onMove);
+  const onRematchRequestRef = useRef(options.onRematchRequest);
+  const onOpponentResignRef = useRef(options.onOpponentResign);
+  const onDrawOfferRef = useRef(options.onDrawOffer);
+  const onDrawAcceptedRef = useRef(options.onDrawAccepted);
+  const onConnectionChangeRef = useRef(options.onConnectionChange);
+
+  // Update refs when options change
+  useEffect(() => {
+    onMoveRef.current = options.onMove;
+    onRematchRequestRef.current = options.onRematchRequest;
+    onOpponentResignRef.current = options.onOpponentResign;
+    onDrawOfferRef.current = options.onDrawOffer;
+    onDrawAcceptedRef.current = options.onDrawAccepted;
+    onConnectionChangeRef.current = options.onConnectionChange;
+  }, [options]);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    isHostRef.current = isHost;
+  }, [isHost]);
+
+  useEffect(() => {
+    gameIdRef.current = gameId;
+  }, [gameId]);
+
   const cleanup = useCallback(() => {
     unsubscribeRef.current.forEach(unsub => unsub());
     unsubscribeRef.current = [];
   }, []);
 
-  // Create a new game as host
-  const createGame = useCallback(async (): Promise<string> => {
-    const code = generateGameCode();
-    const gameRef = ref(database, `games/${code}`);
-
-    try {
-      await set(gameRef, {
-        host: true,
-        hostConnected: true,
-        guestConnected: false,
-        moves: [],
-        actions: null,
-        chat: [],
-        createdAt: Date.now(),
-      });
-    } catch (error) {
-      console.error('Firebase write error:', error);
-      throw error;
-    }
-
-    // Set up disconnect handler
-    const hostConnectedRef = ref(database, `games/${code}/hostConnected`);
-    onDisconnect(hostConnectedRef).set(false);
-
-    setGameId(code);
-    setIsHost(true);
-    setPlayerColor('w');
-    setIsConnected(true);
-
-    // Listen for guest connection
-    const guestRef = ref(database, `games/${code}/guestConnected`);
-    const unsubGuest = onValue(guestRef, (snapshot) => {
-      const connected = snapshot.val();
-      setOpponentConnected(connected === true);
-      onConnectionChange?.(connected === true);
+  // Set up listeners for a game
+  const setupGameListeners = useCallback((code: string, amHost: boolean) => {
+    // Listen for opponent connection
+    const opponentConnRef = ref(database, `games/${code}/${amHost ? 'guestConnected' : 'hostConnected'}`);
+    const unsubOpponent = onValue(opponentConnRef, (snapshot) => {
+      const connected = snapshot.val() === true;
+      setOpponentConnected(connected);
+      onConnectionChangeRef.current?.(connected);
     });
-    unsubscribeRef.current.push(unsubGuest);
+    unsubscribeRef.current.push(unsubOpponent);
 
-    // Listen for moves from guest
+    // Listen for moves
     const movesRef = ref(database, `games/${code}/moves`);
     const unsubMoves = onValue(movesRef, (snapshot) => {
       const moves = snapshot.val();
-      if (moves && Array.isArray(moves)) {
-        const lastMove = moves[moves.length - 1];
-        if (lastMove && lastMove.player === 'guest' && lastMove.id !== lastMoveRef.current) {
-          lastMoveRef.current = lastMove.id;
-          onMove?.(lastMove.from, lastMove.to, lastMove.promotion);
+      if (!moves || !Array.isArray(moves)) return;
+
+      // Process only new moves from opponent
+      const opponentRole = amHost ? 'guest' : 'host';
+
+      for (let i = processedMoveCountRef.current; i < moves.length; i++) {
+        const move = moves[i];
+        if (move.player === opponentRole) {
+          onMoveRef.current?.(move.from, move.to, move.promotion);
         }
+        processedMoveCountRef.current = i + 1;
       }
     });
     unsubscribeRef.current.push(unsubMoves);
 
-    // Listen for actions (resign, draw, rematch)
+    // Listen for actions
     const actionsRef = ref(database, `games/${code}/actions`);
     const unsubActions = onValue(actionsRef, (snapshot) => {
       const action = snapshot.val();
-      if (action && action.from === 'guest' && action.id !== lastActionRef.current) {
-        lastActionRef.current = action.id;
-        if (action.type === 'resign') onOpponentResign?.();
-        if (action.type === 'draw-offer') onDrawOffer?.();
-        if (action.type === 'draw-accept') onDrawAccepted?.();
-        if (action.type === 'rematch') onRematchRequest?.();
+      if (!action) return;
+
+      const opponentRole = amHost ? 'guest' : 'host';
+      if (action.from === opponentRole && action.id !== lastActionIdRef.current) {
+        lastActionIdRef.current = action.id;
+        if (action.type === 'resign') onOpponentResignRef.current?.();
+        if (action.type === 'draw-offer') onDrawOfferRef.current?.();
+        if (action.type === 'draw-accept') onDrawAcceptedRef.current?.();
+        if (action.type === 'rematch') onRematchRequestRef.current?.();
       }
     });
     unsubscribeRef.current.push(unsubActions);
@@ -142,145 +140,127 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       if (messages) {
         const msgArray = Object.values(messages) as ChatMessage[];
         setChatMessages(msgArray.sort((a, b) => a.timestamp - b.timestamp));
-        const lastMsg = msgArray[msgArray.length - 1];
-        if (lastMsg && lastMsg.sender === 'opponent') {
-          onChat?.(lastMsg);
-        }
       }
     });
     unsubscribeRef.current.push(unsubChat);
+  }, []);
+
+  // Create a new game as host
+  const createGame = useCallback(async (): Promise<string> => {
+    const code = generateGameCode();
+    const gameRef = ref(database, `games/${code}`);
+
+    await set(gameRef, {
+      hostConnected: true,
+      guestConnected: false,
+      moves: [],
+      actions: null,
+      chat: {},
+      createdAt: Date.now(),
+    });
+
+    // Set up disconnect handler
+    const hostConnectedRef = ref(database, `games/${code}/hostConnected`);
+    onDisconnect(hostConnectedRef).set(false);
+
+    // Reset move counter
+    processedMoveCountRef.current = 0;
+    lastActionIdRef.current = null;
+
+    setGameId(code);
+    setIsHost(true);
+    setPlayerColor('w');
+    setIsConnected(true);
+
+    setupGameListeners(code, true);
 
     return code;
-  }, [onMove, onConnectionChange, onOpponentResign, onDrawOffer, onDrawAccepted, onRematchRequest, onChat]);
+  }, [setupGameListeners]);
 
   // Join an existing game
   const joinGame = useCallback(async (code: string): Promise<boolean> => {
     try {
       const gameRef = ref(database, `games/${code}`);
+      const snapshot = await get(gameRef);
+      const game = snapshot.val();
 
-      return new Promise((resolve) => {
-        const unsubCheck = onValue(gameRef, async (snapshot) => {
-          unsubCheck(); // Unsubscribe immediately after first check
+      if (!game || !game.hostConnected) {
+        return false;
+      }
 
-          const game = snapshot.val();
-          if (!game || !game.host) {
-            resolve(false);
-            return;
-          }
+      // Mark guest as connected
+      const guestConnectedRef = ref(database, `games/${code}/guestConnected`);
+      await set(guestConnectedRef, true);
+      onDisconnect(guestConnectedRef).set(false);
 
-          // Mark guest as connected
-          await update(ref(database, `games/${code}`), {
-            guestConnected: true,
-          });
+      // Reset move counter
+      processedMoveCountRef.current = 0;
+      lastActionIdRef.current = null;
 
-          // Set up disconnect handler
-          const guestConnectedRef = ref(database, `games/${code}/guestConnected`);
-          onDisconnect(guestConnectedRef).set(false);
+      setGameId(code);
+      setIsHost(false);
+      setPlayerColor('b');
+      setIsConnected(true);
+      setOpponentConnected(true);
 
-          setGameId(code);
-          setIsHost(false);
-          setPlayerColor('b');
-          setIsConnected(true);
-          setOpponentConnected(true);
+      setupGameListeners(code, false);
 
-          // Listen for host connection
-          const hostRef = ref(database, `games/${code}/hostConnected`);
-          const unsubHost = onValue(hostRef, (snapshot) => {
-            const connected = snapshot.val();
-            setOpponentConnected(connected === true);
-            onConnectionChange?.(connected === true);
-          });
-          unsubscribeRef.current.push(unsubHost);
-
-          // Listen for moves from host
-          const movesRef = ref(database, `games/${code}/moves`);
-          const unsubMoves = onValue(movesRef, (snapshot) => {
-            const moves = snapshot.val();
-            if (moves && Array.isArray(moves)) {
-              const lastMove = moves[moves.length - 1];
-              if (lastMove && lastMove.player === 'host' && lastMove.id !== lastMoveRef.current) {
-                lastMoveRef.current = lastMove.id;
-                onMove?.(lastMove.from, lastMove.to, lastMove.promotion);
-              }
-            }
-          });
-          unsubscribeRef.current.push(unsubMoves);
-
-          // Listen for actions
-          const actionsRef = ref(database, `games/${code}/actions`);
-          const unsubActions = onValue(actionsRef, (snapshot) => {
-            const action = snapshot.val();
-            if (action && action.from === 'host' && action.id !== lastActionRef.current) {
-              lastActionRef.current = action.id;
-              if (action.type === 'resign') onOpponentResign?.();
-              if (action.type === 'draw-offer') onDrawOffer?.();
-              if (action.type === 'draw-accept') onDrawAccepted?.();
-              if (action.type === 'rematch') onRematchRequest?.();
-            }
-          });
-          unsubscribeRef.current.push(unsubActions);
-
-          // Listen for chat
-          const chatRef = ref(database, `games/${code}/chat`);
-          const unsubChat = onValue(chatRef, (snapshot) => {
-            const messages = snapshot.val();
-            if (messages) {
-              const msgArray = Object.values(messages) as ChatMessage[];
-              setChatMessages(msgArray.sort((a, b) => a.timestamp - b.timestamp));
-            }
-          });
-          unsubscribeRef.current.push(unsubChat);
-
-          resolve(true);
-        }, { onlyOnce: true });
-      });
+      return true;
     } catch (error) {
       console.error('Failed to join game:', error);
       return false;
     }
-  }, [onMove, onConnectionChange, onOpponentResign, onDrawOffer, onDrawAccepted, onRematchRequest]);
+  }, [setupGameListeners]);
 
-  // Send a move
+  // Send a move - using get() to avoid race conditions
   const sendMove = useCallback(async (from: string, to: string, promotion?: string) => {
-    if (!gameId) return;
+    const currentGameId = gameIdRef.current;
+    const currentIsHost = isHostRef.current;
 
-    const movesRef = ref(database, `games/${gameId}/moves`);
-    const moveId = `${Date.now()}-${Math.random()}`;
+    if (!currentGameId) return;
 
-    onValue(movesRef, async (snapshot) => {
+    try {
+      const movesRef = ref(database, `games/${currentGameId}/moves`);
+      const snapshot = await get(movesRef);
       const moves = snapshot.val() || [];
-      await set(movesRef, [
-        ...moves,
-        {
-          id: moveId,
-          from,
-          to,
-          promotion,
-          player: isHost ? 'host' : 'guest',
-          timestamp: Date.now(),
-        },
-      ]);
-    }, { onlyOnce: true });
-  }, [gameId, isHost]);
+
+      const newMove = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        from,
+        to,
+        promotion,
+        player: currentIsHost ? 'host' : 'guest',
+        timestamp: Date.now(),
+      };
+
+      await set(movesRef, [...moves, newMove]);
+    } catch (error) {
+      console.error('Failed to send move:', error);
+    }
+  }, []);
 
   // Send action (resign, draw, rematch)
   const sendAction = useCallback(async (type: string) => {
-    if (!gameId) return;
+    const currentGameId = gameIdRef.current;
+    const currentIsHost = isHostRef.current;
 
-    const actionsRef = ref(database, `games/${gameId}/actions`);
+    if (!currentGameId) return;
+
+    const actionsRef = ref(database, `games/${currentGameId}/actions`);
     await set(actionsRef, {
-      id: `${Date.now()}-${Math.random()}`,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type,
-      from: isHost ? 'host' : 'guest',
+      from: currentIsHost ? 'host' : 'guest',
       timestamp: Date.now(),
     });
-  }, [gameId, isHost]);
+  }, []);
 
   // Send chat message
   const sendChat = useCallback(async (text: string) => {
-    if (!gameId) return;
+    const currentGameId = gameIdRef.current;
+    if (!currentGameId) return;
 
-    const chatRef = ref(database, `games/${gameId}/chat`);
+    const chatRef = ref(database, `games/${currentGameId}/chat`);
     const newMsgRef = push(chatRef);
     await set(newMsgRef, {
       id: newMsgRef.key,
@@ -288,7 +268,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       sender: 'me',
       timestamp: Date.now(),
     });
-  }, [gameId]);
+  }, []);
 
   const requestRematch = useCallback(() => sendAction('rematch'), [sendAction]);
   const resign = useCallback(() => sendAction('resign'), [sendAction]);
@@ -299,15 +279,21 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
   // Disconnect from game
   const disconnect = useCallback(() => {
     cleanup();
-    if (gameId) {
-      const connectedRef = ref(database, `games/${gameId}/${isHost ? 'hostConnected' : 'guestConnected'}`);
+    const currentGameId = gameIdRef.current;
+    const currentIsHost = isHostRef.current;
+
+    if (currentGameId) {
+      const connectedRef = ref(database, `games/${currentGameId}/${currentIsHost ? 'hostConnected' : 'guestConnected'}`);
       set(connectedRef, false);
     }
+
+    processedMoveCountRef.current = 0;
+    lastActionIdRef.current = null;
     setGameId(null);
     setIsConnected(false);
     setOpponentConnected(false);
     setChatMessages([]);
-  }, [gameId, isHost, cleanup]);
+  }, [cleanup]);
 
   // Cleanup on unmount
   useEffect(() => {
