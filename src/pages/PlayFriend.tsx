@@ -118,6 +118,7 @@ export function PlayFriend() {
       setPhase('waiting');
     } catch (error) {
       console.error('Failed to create game:', error);
+      alert('Failed to create game. Please check your internet connection and try again.');
     }
   };
 

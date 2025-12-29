@@ -74,15 +74,20 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     const code = generateGameCode();
     const gameRef = ref(database, `games/${code}`);
 
-    await set(gameRef, {
-      host: true,
-      hostConnected: true,
-      guestConnected: false,
-      moves: [],
-      actions: null,
-      chat: [],
-      createdAt: Date.now(),
-    });
+    try {
+      await set(gameRef, {
+        host: true,
+        hostConnected: true,
+        guestConnected: false,
+        moves: [],
+        actions: null,
+        chat: [],
+        createdAt: Date.now(),
+      });
+    } catch (error) {
+      console.error('Firebase write error:', error);
+      throw error;
+    }
 
     // Set up disconnect handler
     const hostConnectedRef = ref(database, `games/${code}/hostConnected`);
