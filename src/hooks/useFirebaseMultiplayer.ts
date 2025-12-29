@@ -103,15 +103,19 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     // Listen for moves
     const movesRef = ref(database, `games/${code}/moves`);
     const unsubMoves = onValue(movesRef, (snapshot) => {
-      const moves = snapshot.val();
-      if (!moves || !Array.isArray(moves)) return;
+      const data = snapshot.val();
+      if (!data) return;
+
+      // Firebase sometimes converts arrays to objects - handle both
+      const moves = Array.isArray(data) ? data : Object.values(data);
+      if (moves.length === 0) return;
 
       // Process only new moves from opponent
       const opponentRole = amHost ? 'guest' : 'host';
 
       for (let i = processedMoveCountRef.current; i < moves.length; i++) {
-        const move = moves[i];
-        if (move.player === opponentRole) {
+        const move = moves[i] as { from: string; to: string; promotion?: string; player: string };
+        if (move && move.player === opponentRole) {
           onMoveRef.current?.(move.from, move.to, move.promotion);
         }
         processedMoveCountRef.current = i + 1;
@@ -198,7 +202,8 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       onDisconnect(guestConnectedRef).set(false);
 
       // Get current move count to know where to start processing
-      const moves = game.moves || [];
+      const movesData = game.moves;
+      const moves = movesData ? (Array.isArray(movesData) ? movesData : Object.values(movesData)) : [];
       processedMoveCountRef.current = moves.length;
       lastActionIdRef.current = null;
 
@@ -235,7 +240,9 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     try {
       const movesRef = ref(database, `games/${currentGameId}/moves`);
       const snapshot = await get(movesRef);
-      const moves = snapshot.val() || [];
+      const data = snapshot.val();
+      // Firebase sometimes converts arrays to objects - handle both
+      const moves = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
 
       const newMove = {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
