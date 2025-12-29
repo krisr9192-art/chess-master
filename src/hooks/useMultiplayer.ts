@@ -176,6 +176,17 @@ export function useMultiplayer(options: UseMultiplayerOptions = {}): UseMultipla
   const joinGame = useCallback(
     async (hostId: string): Promise<boolean> => {
       return new Promise((resolve) => {
+        let resolved = false;
+
+        // Timeout after 15 seconds
+        const timeout = setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            peerRef.current?.destroy();
+            resolve(false);
+          }
+        }, 15000);
+
         const guestId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
         const peer = new Peer(guestId, {
           config: {
@@ -205,16 +216,28 @@ export function useMultiplayer(options: UseMultiplayerOptions = {}): UseMultipla
           setupConnection(conn);
 
           conn.on('open', () => {
-            resolve(true);
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              resolve(true);
+            }
           });
 
           conn.on('error', () => {
-            resolve(false);
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              resolve(false);
+            }
           });
         });
 
         peer.on('error', () => {
-          resolve(false);
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timeout);
+            resolve(false);
+          }
         });
       });
     },
