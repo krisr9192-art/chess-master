@@ -427,14 +427,21 @@ export function PlayFriend() {
               <div>Opponent: {opponentConnected ? 'Connected' : 'Disconnected'}</div>
               <div>Moves: {gameState.moveHistory.length}</div>
               <button
-                onClick={() => {
-                  alert('Testing sendMove: e2 to e4');
-                  sendMove('e2', 'e4', undefined, 'test-fen');
-                  setTimeout(() => alert('sendMove completed (check Firebase)'), 1000);
+                onClick={async () => {
+                  try {
+                    alert(`Game ID: ${peerId}\nTrying direct Firebase write...`);
+                    const { ref, set } = await import('firebase/database');
+                    const { database } = await import('../lib/firebase');
+                    const testRef = ref(database, `games/${peerId}/testMove`);
+                    await set(testRef, { test: 'hello', time: Date.now() });
+                    alert('Direct Firebase write SUCCESS!');
+                  } catch (err: any) {
+                    alert(`Firebase ERROR: ${err.message}`);
+                  }
                 }}
                 className="mt-2 px-2 py-1 bg-yellow-600 text-black rounded"
               >
-                Test Send Move
+                Test Firebase
               </button>
             </div>
           </div>
