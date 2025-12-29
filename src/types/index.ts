@@ -80,7 +80,7 @@ export interface Tutorial {
   completed?: boolean;
 }
 
-export type TutorialCategory = 'basics' | 'pieces' | 'tactics' | 'openings' | 'endgames';
+export type TutorialCategory = 'basics' | 'pieces' | 'tactics' | 'openings' | 'endgames' | 'checkmates' | 'strategy';
 
 export interface TutorialStep {
   instruction: string;

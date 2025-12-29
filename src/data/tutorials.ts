@@ -761,12 +761,469 @@ export const tutorials: Tutorial[] = [
       },
     ],
   },
+  // CHECKMATE PATTERNS
+  {
+    id: 'checkmates-scholars',
+    title: "Scholar's Mate",
+    description: 'The famous 4-move checkmate - and how to defend against it.',
+    category: 'checkmates',
+    steps: [
+      {
+        instruction: "Scholar's Mate is a 4-move checkmate that traps many beginners. It starts with 1.e4 e5 2.Bc4.",
+        fen: 'rnbqkbnr/pppp1ppp/8/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR b KQkq - 1 2',
+        arrows: [{ from: 'c4', to: 'f7' }],
+        explanation: 'The bishop aims at f7, the weakest square in Black\'s position.',
+      },
+      {
+        instruction: 'After 2...Nc6, White plays 3.Qh5! threatening both f7 and e5.',
+        fen: 'r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3',
+        arrows: [{ from: 'h5', to: 'f7' }, { from: 'h5', to: 'e5' }],
+        explanation: 'The queen and bishop both attack f7. Black must be very careful!',
+      },
+      {
+        instruction: 'If Black plays 3...Nf6?? trying to attack the queen, White wins with 4.Qxf7#!',
+        fen: 'r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4',
+        highlightSquares: ['f7', 'e8'],
+        explanation: "Checkmate! The king cannot escape. This is Scholar's Mate.",
+      },
+      {
+        instruction: 'To defend, Black should play 3...Qe7! protecting f7 and developing.',
+        fen: 'r1b1kbnr/ppppqppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4',
+        highlightSquares: ['e7'],
+        explanation: 'The queen on e7 defends f7. Now White has wasted time with the early queen move!',
+      },
+    ],
+  },
+  {
+    id: 'checkmates-smothered',
+    title: 'Smothered Mate',
+    description: 'A beautiful checkmate where the king is trapped by its own pieces.',
+    category: 'checkmates',
+    steps: [
+      {
+        instruction: "Smothered mate occurs when a knight checkmates a king surrounded by its own pieces.",
+        fen: '5rrk/5Npp/8/8/8/8/6PP/6K1 b - - 0 1',
+        highlightSquares: ['h8', 'f7'],
+        explanation: "The king on h8 is smothered by the rook on g8 and pawns. The knight delivers mate!",
+      },
+      {
+        instruction: 'Setting up: White plays Qg8+! sacrificing the queen.',
+        fen: '5r1k/5Npp/8/8/8/6Q1/6PP/6K1 w - - 0 1',
+        arrows: [{ from: 'g3', to: 'g8' }],
+        explanation: 'Qg8+! forces Rxg8, blocking the king\'s escape.',
+      },
+      {
+        instruction: 'After Rxg8, the knight delivers the smothered mate: Nf7#!',
+        fen: '5rk1/5Npp/8/8/8/8/6PP/6K1 w - - 0 1',
+        arrows: [{ from: 'f7', to: 'h6' }],
+        explanation: 'Nh6# is checkmate! The king is smothered by its own rook and pawns.',
+      },
+    ],
+  },
+  {
+    id: 'checkmates-arabian',
+    title: 'Arabian Mate',
+    description: 'A corner mate with rook and knight.',
+    category: 'checkmates',
+    steps: [
+      {
+        instruction: 'Arabian Mate traps the king in the corner using a rook and knight.',
+        fen: '6k1/5ppp/8/6N1/8/8/8/5R1K w - - 0 1',
+        arrows: [{ from: 'f1', to: 'f8' }],
+        explanation: 'Rf8# is coming! The knight covers the escape squares.',
+      },
+      {
+        instruction: 'After Rf8+, it\'s checkmate! The knight on g5 covers h7 and f7.',
+        fen: '5Rk1/5ppp/8/6N1/8/8/8/7K b - - 0 1',
+        highlightSquares: ['f8', 'g5', 'g8'],
+        arrows: [{ from: 'g5', to: 'h7' }, { from: 'g5', to: 'f7' }],
+        explanation: 'The king cannot go to h7 (knight), f7 (knight), or stay (rook). Checkmate!',
+      },
+    ],
+  },
+  {
+    id: 'checkmates-back-rank',
+    title: 'Back Rank Mate Patterns',
+    description: 'Various ways to deliver back rank checkmate.',
+    category: 'checkmates',
+    steps: [
+      {
+        instruction: 'The classic back rank mate - the rook slides to the 8th rank.',
+        fen: '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
+        arrows: [{ from: 'a1', to: 'a8' }],
+        explanation: 'Ra8# is checkmate. The pawns trap their own king!',
+      },
+      {
+        instruction: 'Sometimes you need to sacrifice to clear the way.',
+        fen: 'r3r1k1/5ppp/8/8/8/3Q4/5PPP/4R1K1 w - - 0 1',
+        arrows: [{ from: 'd3', to: 'd8' }],
+        explanation: 'Qd8+! sacrifices the queen. After Rxd8, Re8+! Rxe8, and White lost but showed the idea.',
+      },
+      {
+        instruction: 'With two rooks, back rank mate becomes easier.',
+        fen: '2r3k1/5ppp/8/8/8/8/5PPP/1RR3K1 w - - 0 1',
+        arrows: [{ from: 'c1', to: 'c8' }],
+        explanation: 'Rxc8+ Rxc8, Rxc8# - doubled rooks are powerful!',
+      },
+      {
+        instruction: 'Always watch for back rank weakness - create "luft" (an escape square).',
+        fen: '6k1/5pp1/7p/8/8/8/5PPP/R5K1 w - - 0 1',
+        highlightSquares: ['h6'],
+        explanation: 'Black has played h6, creating an escape on h7. No more back rank mate!',
+      },
+    ],
+  },
+  {
+    id: 'checkmates-ladder',
+    title: 'Ladder Mate (Two Rooks)',
+    description: 'Use two rooks to force checkmate step by step.',
+    category: 'checkmates',
+    steps: [
+      {
+        instruction: 'The Ladder Mate uses two rooks to push the king to the edge.',
+        fen: '8/8/8/4k3/8/8/8/R3R1K1 w - - 0 1',
+        arrows: [{ from: 'a1', to: 'a5' }],
+        explanation: 'Ra5+ pushes the king up. The rooks take turns checking.',
+      },
+      {
+        instruction: 'The king must move up. Then the other rook checks.',
+        fen: '8/8/4k3/R7/8/8/8/4R1K1 w - - 0 1',
+        arrows: [{ from: 'e1', to: 'e6' }],
+        explanation: 'Re6+ forces the king even higher. Like climbing a ladder!',
+      },
+      {
+        instruction: 'Continue until the king reaches the 8th rank.',
+        fen: '3k4/8/4R3/R7/8/8/8/6K1 w - - 0 1',
+        arrows: [{ from: 'a5', to: 'a8' }],
+        explanation: 'Ra8# is checkmate! The rooks boxed in the king.',
+      },
+    ],
+  },
+  {
+    id: 'checkmates-hook',
+    title: 'Hook Mate',
+    description: 'Rook, knight, and pawn combine for checkmate.',
+    category: 'checkmates',
+    steps: [
+      {
+        instruction: 'The Hook Mate uses a rook protected by a knight or pawn.',
+        fen: '4Rk2/5Npp/5P2/8/8/8/8/6K1 b - - 0 1',
+        highlightSquares: ['e8', 'f7', 'f6'],
+        explanation: 'This is checkmate! The rook on e8 is protected, and f7/f6 control escape squares.',
+      },
+      {
+        instruction: 'Setting it up: push the king to the corner first.',
+        fen: '5k2/5Npp/5P2/8/8/8/8/4R1K1 w - - 0 1',
+        arrows: [{ from: 'e1', to: 'e8' }],
+        explanation: 'Re8# delivers the hook mate!',
+      },
+    ],
+  },
+  // MORE OPENINGS
+  {
+    id: 'openings-queens-gambit',
+    title: "Queen's Gambit",
+    description: 'The classic pawn sacrifice for central control.',
+    category: 'openings',
+    steps: [
+      {
+        instruction: "The Queen's Gambit begins with 1.d4 d5 2.c4.",
+        fen: 'rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2',
+        highlightSquares: ['c4', 'd5'],
+        explanation: 'White offers a pawn to fight for control of the center.',
+      },
+      {
+        instruction: "Black can accept with 2...dxc4 (Queen's Gambit Accepted).",
+        fen: 'rnbqkbnr/ppp1pppp/8/8/2pP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3',
+        highlightSquares: ['c4'],
+        explanation: "Taking the pawn is fine, but Black shouldn't try to hold it.",
+      },
+      {
+        instruction: "Or decline with 2...e6 (Queen's Gambit Declined).",
+        fen: 'rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3',
+        highlightSquares: ['e6'],
+        explanation: 'Black defends d5 and prepares to develop the bishop.',
+      },
+      {
+        instruction: "The Slav Defense (2...c6) is another solid option.",
+        fen: 'rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3',
+        highlightSquares: ['c6'],
+        explanation: 'The Slav supports d5 while keeping the light-squared bishop free.',
+      },
+    ],
+  },
+  {
+    id: 'openings-french',
+    title: 'French Defense',
+    description: 'A solid defense that challenges White\'s center.',
+    category: 'openings',
+    steps: [
+      {
+        instruction: 'The French Defense begins with 1.e4 e6.',
+        fen: 'rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
+        highlightSquares: ['e6'],
+        explanation: 'Black prepares to challenge e4 with ...d5 on the next move.',
+      },
+      {
+        instruction: 'After 2.d4 d5, Black directly challenges White\'s center.',
+        fen: 'rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3',
+        arrows: [{ from: 'd5', to: 'e4' }],
+        explanation: 'The pawn tension in the center defines the French.',
+      },
+      {
+        instruction: 'The Advance Variation: 3.e5 gains space but locks the center.',
+        fen: 'rnbqkbnr/ppp2ppp/4p3/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3',
+        highlightSquares: ['e5'],
+        explanation: 'White gains space, but Black will attack the pawn chain with ...c5.',
+      },
+      {
+        instruction: 'Black attacks the base of the chain with ...c5.',
+        fen: 'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4',
+        arrows: [{ from: 'c5', to: 'd4' }],
+        explanation: 'Classic French strategy - attack the pawn chain at its base!',
+      },
+    ],
+  },
+  {
+    id: 'openings-caro-kann',
+    title: 'Caro-Kann Defense',
+    description: 'A solid, reliable response to 1.e4.',
+    category: 'openings',
+    steps: [
+      {
+        instruction: 'The Caro-Kann begins with 1.e4 c6.',
+        fen: 'rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
+        highlightSquares: ['c6'],
+        explanation: 'Like the French, Black prepares ...d5, but keeps the bishop free.',
+      },
+      {
+        instruction: 'After 2.d4 d5, Black has a solid center.',
+        fen: 'rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3',
+        arrows: [{ from: 'c8', to: 'f5' }],
+        explanation: 'Unlike the French, Black\'s light-squared bishop can develop to f5 or g4.',
+      },
+      {
+        instruction: 'After 3.Nc3 dxe4 4.Nxe4, Black plays 4...Bf5! (Classical).',
+        fen: 'rn1qkbnr/pp2pppp/2p5/5b2/3PN3/8/PPP2PPP/R1BQKBNR w KQkq - 1 5',
+        highlightSquares: ['f5'],
+        explanation: 'The bishop develops actively before ...e6. A key advantage over the French.',
+      },
+    ],
+  },
+  {
+    id: 'openings-ruy-lopez',
+    title: 'Ruy Lopez (Spanish Game)',
+    description: 'One of the oldest and most respected openings.',
+    category: 'openings',
+    steps: [
+      {
+        instruction: 'The Ruy Lopez: 1.e4 e5 2.Nf3 Nc6 3.Bb5.',
+        fen: 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3',
+        arrows: [{ from: 'b5', to: 'c6' }],
+        explanation: 'The bishop pins the knight that defends e5.',
+      },
+      {
+        instruction: 'Black usually plays 3...a6 (Morphy Defense).',
+        fen: 'r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4',
+        arrows: [{ from: 'b5', to: 'a4' }],
+        explanation: 'Kicking the bishop. White retreats to a4, maintaining pressure.',
+      },
+      {
+        instruction: 'After 4.Ba4 Nf6 5.O-O, the main lines begin.',
+        fen: 'r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 5',
+        explanation: 'White castles. A rich strategic battle awaits!',
+      },
+    ],
+  },
+  // STRATEGY
+  {
+    id: 'strategy-pawn-structure',
+    title: 'Pawn Structure Basics',
+    description: 'Understand how pawns shape the game.',
+    category: 'strategy',
+    steps: [
+      {
+        instruction: 'Pawns are the soul of chess. Their structure shapes the entire game.',
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        explanation: 'Pawns cannot move backward, so every pawn move is permanent!',
+      },
+      {
+        instruction: 'Doubled pawns (two on the same file) are usually weak.',
+        fen: '8/pp3ppp/3p4/3P4/3P4/8/PP3PPP/8 w - - 0 1',
+        highlightSquares: ['d4', 'd5'],
+        explanation: 'These doubled pawns cannot defend each other and are harder to advance.',
+      },
+      {
+        instruction: 'Isolated pawns have no friendly pawns on adjacent files.',
+        fen: '8/pp2pppp/8/3p4/8/8/PPP1PPPP/8 w - - 0 1',
+        highlightSquares: ['d5'],
+        explanation: 'The d5 pawn is isolated - it must be defended by pieces.',
+      },
+      {
+        instruction: 'A passed pawn has no enemy pawns blocking its path to promotion.',
+        fen: '8/8/8/3P4/8/5p2/8/8 w - - 0 1',
+        arrows: [{ from: 'd5', to: 'd8' }],
+        explanation: 'White\'s d-pawn is passed - nothing can stop it from reaching d8!',
+      },
+    ],
+  },
+  {
+    id: 'strategy-weak-squares',
+    title: 'Weak Squares',
+    description: 'Identify and exploit holes in the position.',
+    category: 'strategy',
+    steps: [
+      {
+        instruction: 'A weak square is one that cannot be defended by pawns.',
+        fen: 'rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3',
+        highlightSquares: ['d6', 'f6'],
+        explanation: 'After ...e6, d6 and f6 become weak - pawns can never guard them again.',
+      },
+      {
+        instruction: 'Knights love to occupy weak squares (outposts).',
+        fen: '8/ppp2ppp/3Np3/3p4/3PP3/8/PPP2PPP/8 w - - 0 1',
+        highlightSquares: ['d6'],
+        explanation: 'A knight on d6 is beautifully placed - no pawn can kick it away!',
+      },
+      {
+        instruction: 'Avoid creating weak squares in your own position.',
+        fen: 'rnbqkbnr/pp3ppp/2p1p3/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 0 4',
+        explanation: 'Black played ...c6 and ...e6 - solid but d5/d6 are potential holes.',
+      },
+    ],
+  },
+  {
+    id: 'strategy-piece-activity',
+    title: 'Piece Activity',
+    description: 'Active pieces win games.',
+    category: 'strategy',
+    steps: [
+      {
+        instruction: 'Active pieces have scope and influence. Passive pieces are stuck.',
+        fen: 'r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4',
+        explanation: 'All minor pieces are actively placed, controlling key squares.',
+      },
+      {
+        instruction: 'Rooks need open files to be active.',
+        fen: 'r4rk1/ppp2ppp/8/8/8/8/PPP2PPP/R4RK1 w - - 0 1',
+        arrows: [{ from: 'a1', to: 'a8' }],
+        explanation: 'The a-file is open. Whoever controls it has the more active rook.',
+      },
+      {
+        instruction: 'A rook on the 7th rank is very powerful.',
+        fen: '6k1/pppR1ppp/8/8/8/8/PPP2PPP/6K1 w - - 0 1',
+        highlightSquares: ['d7'],
+        explanation: 'The rook attacks pawns and restricts the enemy king. Dominant!',
+      },
+      {
+        instruction: 'When ahead in activity, open the position!',
+        fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4',
+        arrows: [{ from: 'd2', to: 'd4' }],
+        explanation: 'White is better developed. Opening with d4 exploits this advantage.',
+      },
+    ],
+  },
+  {
+    id: 'strategy-trading',
+    title: 'When to Trade Pieces',
+    description: 'Learn when to exchange and when to keep pieces.',
+    category: 'strategy',
+    steps: [
+      {
+        instruction: 'Trade pieces when ahead in material.',
+        fen: '8/8/4k3/8/4K3/4R3/8/8 w - - 0 1',
+        explanation: 'With an extra rook, trade pieces to reach a winning endgame.',
+      },
+      {
+        instruction: 'Avoid trades when behind in material.',
+        fen: '8/8/4k3/8/4K3/8/8/8 w - - 0 1',
+        explanation: 'Fewer pieces means less chance for complications. Keep pieces for counterplay!',
+      },
+      {
+        instruction: 'Trade when under attack to reduce enemy threats.',
+        fen: 'r1bqr1k1/ppp2ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQR1K1 w - - 0 1',
+        explanation: 'Trading pieces reduces attacking potential. Simplify when defending!',
+      },
+      {
+        instruction: 'Keep pieces when you are attacking.',
+        fen: 'r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQ - 6 5',
+        explanation: 'More pieces = more firepower for your attack. Don\'t trade!',
+      },
+    ],
+  },
+  // ADVANCED TACTICS
+  {
+    id: 'tactics-deflection',
+    title: 'Deflection',
+    description: 'Force a defending piece away from its duty.',
+    category: 'tactics',
+    steps: [
+      {
+        instruction: 'Deflection forces a piece to leave its defensive post.',
+        fen: '3qk3/8/8/8/8/8/3R4/3QK3 w - - 0 1',
+        arrows: [{ from: 'd1', to: 'd8' }],
+        explanation: 'Qd8+! deflects the black queen. After Qxd8, Rxd8# is checkmate!',
+      },
+      {
+        instruction: 'The defending piece is overloaded with duties.',
+        fen: 'r4rk1/1b3ppp/8/8/8/6Q1/5PPP/3R2K1 w - - 0 1',
+        arrows: [{ from: 'g3', to: 'c7' }],
+        explanation: 'Qc7! deflects protection. The rook must stay to guard back rank.',
+      },
+    ],
+  },
+  {
+    id: 'tactics-decoy',
+    title: 'Decoy',
+    description: 'Lure an enemy piece to a bad square.',
+    category: 'tactics',
+    steps: [
+      {
+        instruction: 'A decoy lures a piece to a square where it can be exploited.',
+        fen: '6k1/5ppp/8/8/8/5N2/5PPP/3R2K1 w - - 0 1',
+        arrows: [{ from: 'd1', to: 'd8' }],
+        explanation: 'Rd8+ decoys the king to d8, allowing a fork or other tactic.',
+      },
+      {
+        instruction: 'Sacrifice to decoy the king.',
+        fen: 'r1b1k2r/pppp1ppp/2n2n2/2b1N3/2B1P3/8/PPPP1PPP/RNBQK2R w KQkq - 4 5',
+        arrows: [{ from: 'c4', to: 'f7' }],
+        explanation: 'Bxf7+ decoys the king to f7, disrupting castling rights.',
+      },
+    ],
+  },
+  {
+    id: 'tactics-zwischenzug',
+    title: 'Zwischenzug (In-Between Move)',
+    description: 'Play an unexpected intermediate move.',
+    category: 'tactics',
+    steps: [
+      {
+        instruction: 'Zwischenzug means "in-between move" - an unexpected intermediate move.',
+        fen: 'r1bqkb1r/pppp1ppp/2n2n2/4N3/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 0 4',
+        explanation: 'Instead of the expected recapture, you play a surprise move first.',
+      },
+      {
+        instruction: 'After Nxe5, Black expects dxe5... but Bxf7+! first is stronger.',
+        fen: 'r1bqkb1r/pppp1ppp/2n5/4n3/2B1P3/8/PPPP1PPP/RNBQK2R w KQkq - 0 5',
+        arrows: [{ from: 'c4', to: 'f7' }],
+        explanation: 'Bxf7+! is a zwischenzug - check first, THEN take back.',
+      },
+      {
+        instruction: 'After Ke7, White recaptures with a better position.',
+        fen: 'r1bq1b1r/ppppkppp/2n5/4n3/4P3/8/PPPP1PPP/RNBQK2R w KQ - 0 6',
+        explanation: 'Black lost castling rights thanks to the zwischenzug!',
+      },
+    ],
+  },
 ];
 
 export const tutorialCategories: { value: TutorialCategory; label: string; description: string }[] = [
   { value: 'basics', label: 'Basics', description: 'Fundamental concepts of chess' },
   { value: 'pieces', label: 'Pieces', description: 'How each piece moves' },
+  { value: 'checkmates', label: 'Checkmates', description: 'Mating patterns to know' },
   { value: 'tactics', label: 'Tactics', description: 'Winning combinations' },
+  { value: 'strategy', label: 'Strategy', description: 'Long-term planning' },
   { value: 'openings', label: 'Openings', description: 'Start the game right' },
   { value: 'endgames', label: 'Endgames', description: 'Finish the game strong' },
 ];
