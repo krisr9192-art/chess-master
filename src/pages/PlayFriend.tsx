@@ -8,7 +8,7 @@ import { GameControls } from '../components/Board/GameControls';
 import { Chat } from '../components/UI/Chat';
 import { Modal } from '../components/UI/Modal';
 import { useChessGame } from '../hooks/useChessGame';
-import { useMultiplayer } from '../hooks/useMultiplayer';
+import { useFirebaseMultiplayer } from '../hooks/useFirebaseMultiplayer';
 import { useGameStore } from '../store/gameStore';
 import { Users, Copy, Check, Loader2, Wifi, WifiOff, Crown, Share2 } from 'lucide-react';
 
@@ -56,7 +56,7 @@ export function PlayFriend() {
     acceptDraw,
     declineDraw,
     disconnect,
-  } = useMultiplayer({
+  } = useFirebaseMultiplayer({
     onMove: handleOpponentMove,
     onRematchRequest: () => setShowRematchRequest(true),
     onOpponentResign: () => {

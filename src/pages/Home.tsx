@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Bot, GraduationCap, Puzzle, BarChart3, Trophy, Zap, Target, TrendingUp, Brain, BookOpen, Calendar } from 'lucide-react';
+import { Bot, Users, GraduationCap, Puzzle, BarChart3, Trophy, Zap, Target, TrendingUp, Brain, BookOpen, Calendar } from 'lucide-react';
 import { useRatingStore } from '../store/ratingStore';
 import { useGameStore } from '../store/gameStore';
 import { getRatingColor } from '../utils/rating';
@@ -12,6 +12,14 @@ const gameModes = [
     icon: Bot,
     gradient: 'from-blue-600 to-blue-800',
     features: ['4 Difficulty Levels', 'Instant Analysis', 'Take Back Moves'],
+  },
+  {
+    path: '/play-friend',
+    title: 'Play with Friends',
+    description: 'Play online with friends anywhere in the world. Share a link and start playing!',
+    icon: Users,
+    gradient: 'from-green-600 to-green-800',
+    features: ['Online Multiplayer', 'Share Link', 'Real-time Play'],
   },
   {
     path: '/learn',
