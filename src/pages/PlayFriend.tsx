@@ -417,6 +417,16 @@ export function PlayFriend() {
                 <div className="text-xs text-slate-400">{playerColor === 'w' ? 'White' : 'Black'}</div>
               </div>
             </div>
+
+            {/* Debug info */}
+            <div className="mt-4 p-3 rounded-lg bg-yellow-900/50 text-xs text-yellow-200 font-mono">
+              <div>Game: {peerId}</div>
+              <div>Turn: {game.turn() === 'w' ? 'White' : 'Black'}</div>
+              <div>You: {playerColor === 'w' ? 'White' : 'Black'}</div>
+              <div>Can move: {game.turn() === playerColor && opponentConnected ? 'YES' : 'NO'}</div>
+              <div>Opponent: {opponentConnected ? 'Connected' : 'Disconnected'}</div>
+              <div>Moves: {gameState.moveHistory.length}</div>
+            </div>
           </div>
 
           {/* Right side - Info panels */}
