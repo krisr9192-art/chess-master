@@ -51,7 +51,6 @@ export function PlayFriend() {
     chatMessages,
     createGame,
     joinGame,
-    sendMove,
     sendChat,
     requestRematch,
     resign,
@@ -184,14 +183,50 @@ export function PlayFriend() {
       console.log('[PlayFriend] makeMove result:', success);
       if (success) {
         setLastMove({ from, to });
-        // Pass the updated FEN for game persistence
         const newFen = game.fen();
-        console.log('[PlayFriend] Calling sendMove with FEN:', newFen);
-        sendMove(from, to, promotion, newFen);
+
+        // Send move directly to Firebase (bypassing the hook's sendMove)
+        const sendMoveToFirebase = async () => {
+          try {
+            const { ref, set, get } = await import('firebase/database');
+            const { database } = await import('../lib/firebase');
+
+            if (!peerId) {
+              console.error('No game ID!');
+              return;
+            }
+
+            const movesRef = ref(database, `games/${peerId}/moves`);
+            const snapshot = await get(movesRef);
+            const data = snapshot.val();
+            const moves = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+
+            const newMove = {
+              id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              from,
+              to,
+              promotion,
+              player: playerColor === 'w' ? 'host' : 'guest',
+              timestamp: Date.now(),
+            };
+
+            await set(movesRef, [...moves, newMove]);
+
+            // Also save FEN
+            const fenRef = ref(database, `games/${peerId}/fen`);
+            await set(fenRef, newFen);
+
+            console.log('[PlayFriend] Move sent to Firebase:', newMove);
+          } catch (err) {
+            console.error('[PlayFriend] Failed to send move:', err);
+          }
+        };
+
+        sendMoveToFirebase();
       }
       return success;
     },
-    [game, playerColor, makeMove, sendMove]
+    [game, playerColor, makeMove, peerId]
   );
 
   const handleResign = () => {
