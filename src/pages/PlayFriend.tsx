@@ -185,10 +185,10 @@ export function PlayFriend() {
         setLastMove({ from, to });
         const newFen = game.fen();
 
-        // Send move directly to Firebase (bypassing the hook's sendMove)
+        // Send move directly to Firebase using push (simpler, no read needed)
         const sendMoveToFirebase = async () => {
           try {
-            const { ref, set, get } = await import('firebase/database');
+            const { ref, push, set } = await import('firebase/database');
             const { database } = await import('../lib/firebase');
 
             if (!peerId) {
@@ -196,27 +196,22 @@ export function PlayFriend() {
               return;
             }
 
+            // Use push to add to moves list
             const movesRef = ref(database, `games/${peerId}/moves`);
-            const snapshot = await get(movesRef);
-            const data = snapshot.val();
-            const moves = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
-
-            const newMove = {
-              id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            const newMoveRef = push(movesRef);
+            await set(newMoveRef, {
               from,
               to,
-              promotion,
+              promotion: promotion || null,
               player: playerColor === 'w' ? 'host' : 'guest',
               timestamp: Date.now(),
-            };
-
-            await set(movesRef, [...moves, newMove]);
+            });
 
             // Also save FEN
             const fenRef = ref(database, `games/${peerId}/fen`);
             await set(fenRef, newFen);
 
-            console.log('[PlayFriend] Move sent to Firebase:', newMove);
+            console.log('[PlayFriend] Move pushed to Firebase');
           } catch (err) {
             console.error('[PlayFriend] Failed to send move:', err);
           }

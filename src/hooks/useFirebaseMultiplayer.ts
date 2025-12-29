@@ -107,8 +107,9 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       console.log('[Firebase] Moves update received:', data, 'amHost:', amHost);
       if (!data) return;
 
-      // Firebase sometimes converts arrays to objects - handle both
-      const moves = Array.isArray(data) ? data : Object.values(data);
+      // Convert object to array and sort by timestamp
+      const movesObj = data as Record<string, { from: string; to: string; promotion?: string; player: string; timestamp: number }>;
+      const moves = Object.values(movesObj).sort((a, b) => a.timestamp - b.timestamp);
       console.log('[Firebase] Processed moves array:', moves, 'length:', moves.length);
       if (moves.length === 0) return;
 
@@ -117,7 +118,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       console.log('[Firebase] Looking for moves from:', opponentRole, 'starting at index:', processedMoveCountRef.current);
 
       for (let i = processedMoveCountRef.current; i < moves.length; i++) {
-        const move = moves[i] as { from: string; to: string; promotion?: string; player: string };
+        const move = moves[i];
         console.log('[Firebase] Processing move at index', i, ':', move);
         if (move && move.player === opponentRole) {
           console.log('[Firebase] Calling onMove for opponent move:', move.from, '->', move.to);
