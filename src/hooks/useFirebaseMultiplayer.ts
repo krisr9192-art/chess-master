@@ -104,18 +104,23 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     const movesRef = ref(database, `games/${code}/moves`);
     const unsubMoves = onValue(movesRef, (snapshot) => {
       const data = snapshot.val();
+      console.log('[Firebase] Moves update received:', data, 'amHost:', amHost);
       if (!data) return;
 
       // Firebase sometimes converts arrays to objects - handle both
       const moves = Array.isArray(data) ? data : Object.values(data);
+      console.log('[Firebase] Processed moves array:', moves, 'length:', moves.length);
       if (moves.length === 0) return;
 
       // Process only new moves from opponent
       const opponentRole = amHost ? 'guest' : 'host';
+      console.log('[Firebase] Looking for moves from:', opponentRole, 'starting at index:', processedMoveCountRef.current);
 
       for (let i = processedMoveCountRef.current; i < moves.length; i++) {
         const move = moves[i] as { from: string; to: string; promotion?: string; player: string };
+        console.log('[Firebase] Processing move at index', i, ':', move);
         if (move && move.player === opponentRole) {
+          console.log('[Firebase] Calling onMove for opponent move:', move.from, '->', move.to);
           onMoveRef.current?.(move.from, move.to, move.promotion);
         }
         processedMoveCountRef.current = i + 1;
@@ -235,7 +240,12 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     const currentGameId = gameIdRef.current;
     const currentIsHost = isHostRef.current;
 
-    if (!currentGameId) return;
+    console.log('[Firebase] sendMove called:', { from, to, promotion, gameId: currentGameId, isHost: currentIsHost });
+
+    if (!currentGameId) {
+      console.log('[Firebase] sendMove aborted - no gameId');
+      return;
+    }
 
     try {
       const movesRef = ref(database, `games/${currentGameId}/moves`);
@@ -243,6 +253,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       const data = snapshot.val();
       // Firebase sometimes converts arrays to objects - handle both
       const moves = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+      console.log('[Firebase] Current moves before adding:', moves);
 
       const newMove = {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -253,7 +264,9 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
         timestamp: Date.now(),
       };
 
+      console.log('[Firebase] Sending new move:', newMove);
       await set(movesRef, [...moves, newMove]);
+      console.log('[Firebase] Move sent successfully');
 
       // Also save the current FEN for game persistence
       if (fen) {
