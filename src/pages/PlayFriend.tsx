@@ -38,7 +38,9 @@ export function PlayFriend() {
   } = useChessGame();
 
   const handleOpponentMove = useCallback((from: string, to: string, promotion?: string) => {
-    makeMove(from as Square, to as Square, promotion as any);
+    console.log('[PlayFriend] handleOpponentMove called:', { from, to, promotion });
+    const success = makeMove(from as Square, to as Square, promotion as any);
+    console.log('[PlayFriend] Opponent move applied:', success);
     setLastMove({ from: from as Square, to: to as Square });
   }, [makeMove]);
 
@@ -172,13 +174,20 @@ export function PlayFriend() {
 
   const handleMove = useCallback(
     (from: Square, to: Square, promotion?: string): boolean => {
-      if (game.turn() !== playerColor) return false;
+      console.log('[PlayFriend] handleMove called:', { from, to, promotion, turn: game.turn(), playerColor });
+      if (game.turn() !== playerColor) {
+        console.log('[PlayFriend] Not my turn, ignoring');
+        return false;
+      }
 
       const success = makeMove(from, to, promotion as any);
+      console.log('[PlayFriend] makeMove result:', success);
       if (success) {
         setLastMove({ from, to });
         // Pass the updated FEN for game persistence
-        sendMove(from, to, promotion, game.fen());
+        const newFen = game.fen();
+        console.log('[PlayFriend] Calling sendMove with FEN:', newFen);
+        sendMove(from, to, promotion, newFen);
       }
       return success;
     },
