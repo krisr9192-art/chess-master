@@ -180,6 +180,10 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     processedMoveCountRef.current = 0;
     lastActionIdRef.current = null;
 
+    // Update refs IMMEDIATELY (don't wait for useEffect)
+    gameIdRef.current = code;
+    isHostRef.current = true;
+
     setGameId(code);
     setIsHost(true);
     setPlayerColor('w');
@@ -211,6 +215,10 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       const moves = movesData ? (Array.isArray(movesData) ? movesData : Object.values(movesData)) : [];
       processedMoveCountRef.current = moves.length;
       lastActionIdRef.current = null;
+
+      // Update refs IMMEDIATELY (don't wait for useEffect)
+      gameIdRef.current = code;
+      isHostRef.current = false;
 
       setGameId(code);
       setIsHost(false);
