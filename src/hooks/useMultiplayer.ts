@@ -34,7 +34,7 @@ interface UseMultiplayerReturn {
 
 function generateGameCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
+  let code = 'CHESS-';
   for (let i = 0; i < 6; i++) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
@@ -138,13 +138,7 @@ export function useMultiplayer(options: UseMultiplayerOptions = {}): UseMultipla
     return new Promise((resolve, reject) => {
       const gameCode = generateGameCode();
 
-      const peer = new Peer(gameCode, {
-        debug: 2,
-        host: '0.peerjs.com',
-        port: 443,
-        path: '/',
-        secure: true,
-      });
+      const peer = new Peer(gameCode);
 
       peerRef.current = peer;
 
@@ -171,20 +165,12 @@ export function useMultiplayer(options: UseMultiplayerOptions = {}): UseMultipla
   const joinGame = useCallback(
     async (hostId: string): Promise<boolean> => {
       return new Promise((resolve) => {
-        const myId = `${hostId}-guest-${Date.now()}`;
-
-        const peer = new Peer(myId, {
-          debug: 2,
-          host: '0.peerjs.com',
-          port: 443,
-          path: '/',
-          secure: true,
-        });
+        const peer = new Peer();
 
         peerRef.current = peer;
 
-        peer.on('open', () => {
-          setPeerId(myId);
+        peer.on('open', (id) => {
+          setPeerId(id);
           setIsHost(false);
           setPlayerColor('b'); // Guest plays black
           setIsConnected(true);
