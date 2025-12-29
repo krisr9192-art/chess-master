@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Square } from 'chess.js';
 import { ChessBoard } from '../components/Board/ChessBoard';
 import { MoveHistory } from '../components/Board/MoveHistory';
@@ -9,14 +10,16 @@ import { Modal } from '../components/UI/Modal';
 import { useChessGame } from '../hooks/useChessGame';
 import { useMultiplayer } from '../hooks/useMultiplayer';
 import { useGameStore } from '../store/gameStore';
-import { Users, Copy, Check, Loader2, Wifi, WifiOff, Crown } from 'lucide-react';
+import { Users, Copy, Check, Loader2, Wifi, WifiOff, Crown, Share2 } from 'lucide-react';
 
 type GamePhase = 'menu' | 'waiting' | 'playing';
 
 export function PlayFriend() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [phase, setPhase] = useState<GamePhase>('menu');
   const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isAutoJoining, setIsAutoJoining] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const [gameResult, setGameResult] = useState('');
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | undefined>();
@@ -92,6 +95,23 @@ export function PlayFriend() {
     }
   }, [opponentConnected, phase]);
 
+  // Auto-join if there's a ?join= parameter in the URL
+  useEffect(() => {
+    const joinCodeFromUrl = searchParams.get('join');
+    if (joinCodeFromUrl && !isAutoJoining && phase === 'menu') {
+      setIsAutoJoining(true);
+      setSearchParams({});
+      joinGame(joinCodeFromUrl.toUpperCase()).then((success) => {
+        if (success) {
+          setPhase('playing');
+        } else {
+          alert('Could not connect to game. The host may have left or the code is invalid.');
+        }
+        setIsAutoJoining(false);
+      });
+    }
+  }, [searchParams, setSearchParams, joinGame, isAutoJoining, phase]);
+
   const handleCreateGame = async () => {
     try {
       await createGame();
@@ -115,11 +135,33 @@ export function PlayFriend() {
     }
   };
 
-  const copyGameCode = () => {
+  const getShareUrl = () => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    return `${baseUrl}?join=${peerId}`;
+  };
+
+  const copyGameLink = () => {
     if (peerId) {
-      navigator.clipboard.writeText(peerId);
+      navigator.clipboard.writeText(getShareUrl());
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const shareGame = async () => {
+    if (peerId && navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Play Chess with me!',
+          text: 'Click the link to join my chess game:',
+          url: getShareUrl(),
+        });
+      } catch (err) {
+        // User cancelled or share failed, fall back to copy
+        copyGameLink();
+      }
+    } else {
+      copyGameLink();
     }
   };
 
@@ -192,6 +234,21 @@ export function PlayFriend() {
 
   // Menu Phase
   if (phase === 'menu') {
+    // Show loading if auto-joining from URL
+    if (isAutoJoining) {
+      return (
+        <div className="min-h-screen py-8">
+          <div className="max-w-xl mx-auto px-4">
+            <div className="card p-8 text-center">
+              <Loader2 size={48} className="animate-spin text-blue-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-white mb-2">Joining game...</h2>
+              <p className="text-slate-400">Connecting to your friend's game</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen py-8">
         <div className="max-w-xl mx-auto px-4">
@@ -200,7 +257,7 @@ export function PlayFriend() {
               <Users className="text-white" size={32} />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">Play with Friends</h1>
-            <p className="text-slate-400">Create a game and share the code, or join with a friend's code</p>
+            <p className="text-slate-400">Create a game and share the link, or join with a friend's code</p>
           </div>
 
           <div className="space-y-4">
@@ -253,18 +310,31 @@ export function PlayFriend() {
           <div className="card p-8 text-center">
             <Loader2 size={48} className="animate-spin text-blue-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Waiting for opponent...</h2>
-            <p className="text-slate-400 mb-6">Share this code with your friend:</p>
+            <p className="text-slate-400 mb-4">Share this link with your friend via WhatsApp, text, or any app:</p>
 
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="text-4xl font-mono font-bold tracking-widest text-blue-400 bg-slate-900 px-6 py-3 rounded-lg">
-                {peerId}
+            <div className="flex flex-col items-center gap-4 mb-6">
+              <div className="text-sm text-slate-300 bg-slate-900 px-4 py-3 rounded-lg break-all max-w-full">
+                {getShareUrl()}
               </div>
-              <button
-                onClick={copyGameCode}
-                className="btn btn-secondary p-3"
-              >
-                {copied ? <Check size={20} className="text-green-400" /> : <Copy size={20} />}
-              </button>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={shareGame}
+                  className="btn btn-primary flex items-center gap-2"
+                >
+                  <Share2 size={20} />
+                  Share Link
+                </button>
+                <button
+                  onClick={copyGameLink}
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  {copied ? <Check size={20} className="text-green-400" /> : <Copy size={20} />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500">Game code: {peerId}</p>
             </div>
 
             <button
