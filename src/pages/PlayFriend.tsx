@@ -34,6 +34,7 @@ export function PlayFriend() {
     resetGame,
     game,
     getLegalMoves,
+    loadFen,
   } = useChessGame();
 
   const handleOpponentMove = useCallback((from: string, to: string, promotion?: string) => {
@@ -68,6 +69,9 @@ export function PlayFriend() {
     onDrawAccepted: () => {
       setGameResult('Draw agreed!');
       setShowGameOver(true);
+    },
+    onGameStateLoaded: (fen: string) => {
+      loadFen(fen);
     },
   });
 
@@ -173,7 +177,8 @@ export function PlayFriend() {
       const success = makeMove(from, to, promotion as any);
       if (success) {
         setLastMove({ from, to });
-        sendMove(from, to, promotion);
+        // Pass the updated FEN for game persistence
+        sendMove(from, to, promotion, game.fen());
       }
       return success;
     },

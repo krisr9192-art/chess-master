@@ -10,6 +10,7 @@ interface UseMultiplayerOptions {
   onDrawOffer?: () => void;
   onDrawAccepted?: () => void;
   onConnectionChange?: (connected: boolean) => void;
+  onGameStateLoaded?: (fen: string) => void;
 }
 
 interface UseMultiplayerReturn {
@@ -21,7 +22,7 @@ interface UseMultiplayerReturn {
   chatMessages: ChatMessage[];
   createGame: () => Promise<string>;
   joinGame: (gameId: string) => Promise<boolean>;
-  sendMove: (from: string, to: string, promotion?: string) => void;
+  sendMove: (from: string, to: string, promotion?: string, fen?: string) => void;
   sendChat: (message: string) => void;
   requestRematch: () => void;
   resign: () => void;
@@ -61,6 +62,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
   const onDrawOfferRef = useRef(options.onDrawOffer);
   const onDrawAcceptedRef = useRef(options.onDrawAccepted);
   const onConnectionChangeRef = useRef(options.onConnectionChange);
+  const onGameStateLoadedRef = useRef(options.onGameStateLoaded);
 
   // Update refs when options change
   useEffect(() => {
@@ -70,6 +72,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
     onDrawOfferRef.current = options.onDrawOffer;
     onDrawAcceptedRef.current = options.onDrawAccepted;
     onConnectionChangeRef.current = options.onConnectionChange;
+    onGameStateLoadedRef.current = options.onGameStateLoaded;
   }, [options]);
 
   // Keep refs in sync with state
@@ -156,6 +159,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       moves: [],
       actions: null,
       chat: {},
+      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', // Starting position
       createdAt: Date.now(),
     });
 
@@ -193,8 +197,9 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       await set(guestConnectedRef, true);
       onDisconnect(guestConnectedRef).set(false);
 
-      // Reset move counter
-      processedMoveCountRef.current = 0;
+      // Get current move count to know where to start processing
+      const moves = game.moves || [];
+      processedMoveCountRef.current = moves.length;
       lastActionIdRef.current = null;
 
       setGameId(code);
@@ -205,6 +210,14 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
 
       setupGameListeners(code, false);
 
+      // Load the current game state (FEN) if there are moves
+      if (game.fen && moves.length > 0) {
+        // Small delay to ensure state is set
+        setTimeout(() => {
+          onGameStateLoadedRef.current?.(game.fen);
+        }, 100);
+      }
+
       return true;
     } catch (error) {
       console.error('Failed to join game:', error);
@@ -213,7 +226,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
   }, [setupGameListeners]);
 
   // Send a move - using get() to avoid race conditions
-  const sendMove = useCallback(async (from: string, to: string, promotion?: string) => {
+  const sendMove = useCallback(async (from: string, to: string, promotion?: string, fen?: string) => {
     const currentGameId = gameIdRef.current;
     const currentIsHost = isHostRef.current;
 
@@ -225,7 +238,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       const moves = snapshot.val() || [];
 
       const newMove = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         from,
         to,
         promotion,
@@ -234,6 +247,12 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
       };
 
       await set(movesRef, [...moves, newMove]);
+
+      // Also save the current FEN for game persistence
+      if (fen) {
+        const fenRef = ref(database, `games/${currentGameId}/fen`);
+        await set(fenRef, fen);
+      }
     } catch (error) {
       console.error('Failed to send move:', error);
     }
@@ -248,7 +267,7 @@ export function useFirebaseMultiplayer(options: UseMultiplayerOptions = {}): Use
 
     const actionsRef = ref(database, `games/${currentGameId}/actions`);
     await set(actionsRef, {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       type,
       from: currentIsHost ? 'host' : 'guest',
       timestamp: Date.now(),
