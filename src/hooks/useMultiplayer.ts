@@ -138,7 +138,18 @@ export function useMultiplayer(options: UseMultiplayerOptions = {}): UseMultipla
     return new Promise((resolve, reject) => {
       const gameCode = generateGameCode();
 
-      const peer = new Peer(gameCode);
+      const peer = new Peer(gameCode, {
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' },
+          ],
+        },
+      });
 
       peerRef.current = peer;
 
@@ -165,7 +176,19 @@ export function useMultiplayer(options: UseMultiplayerOptions = {}): UseMultipla
   const joinGame = useCallback(
     async (hostId: string): Promise<boolean> => {
       return new Promise((resolve) => {
-        const peer = new Peer();
+        const guestId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+        const peer = new Peer(guestId, {
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun2.l.google.com:19302' },
+              { urls: 'stun:stun3.l.google.com:19302' },
+              { urls: 'stun:stun4.l.google.com:19302' },
+              { urls: 'stun:global.stun.twilio.com:3478' },
+            ],
+          },
+        });
 
         peerRef.current = peer;
 
